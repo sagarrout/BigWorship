@@ -1,10 +1,3 @@
-/**
- * Copyright 2021 Bethel AG Hindi Aaradhana
- * 
- * The source code is developed and owned by Bethel AG Hindi Aaradhana. 
- * User must not sell the software to third party under any circumstance.
- * User must not use the software for commercial purpose.
- */
 package main.java.baha;
 
 import java.awt.BorderLayout;
@@ -83,7 +76,6 @@ public class BahaStater {
 		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		GraphicsDevice[] gs = ge.getScreenDevices();
 		for (GraphicsDevice gd : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
-			System.out.println(gd.getIDstring());
 			displayFrameX = Double.valueOf(gd.getDisplayMode().getWidth());
 			displayFrameY = Double.valueOf(gd.getDisplayMode().getHeight());
 			lwidth = Double.valueOf(displayFrameX * 0.85).intValue();
@@ -108,7 +100,7 @@ public class BahaStater {
 				Double.valueOf(displayFrameX - (displayFrameX * .90)).intValue()));
 		label.setEditable(false);
 		
-		bglabel = new LowerThirdPane();
+		bglabel = new JTextPane();
 		bglabel.setVisible(true);
 		bglabel.setOpaque(false);
 		bglabel.setContentType("text/html");
@@ -271,7 +263,6 @@ public class BahaStater {
 								
 								screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 								webFrame.setSize(new Dimension(displayFrameX.intValue(), displayFrameY.intValue()));
-								System.out.println(gd.getDefaultConfiguration().getBounds().height);
 								webFrame.setLocation(gd.getDefaultConfiguration().getBounds().getLocation());
 								webFrame.revalidate();
 								webFrame.repaint();
@@ -403,11 +394,9 @@ public class BahaStater {
 	}
 	
 	public static void loadProperties() {
-		try (InputStream isa = new FileInputStream(new File(main.java.baha.Constants.RESOURCES_PATH + "application.properties"))) {
+		try (InputStream isa = new FileInputStream(new File(Constants.RESOURCES_PATH + "application.properties"))) {
 			if (isa != null) {
-				System.out.println("loading properties..");
 				properties.load(isa);
-				System.out.println("properties loaded..");
 			}
 		} catch (IOException e) {
 			// TODO: handle exception
@@ -439,6 +428,17 @@ public class BahaStater {
 
 		if(fontSize>maxfontSZ) {
 			fontSize = maxfontSZ;
+		}
+		return fontSize;// -= 1;
+
+	}
+	
+	public static int calculateFontSizeVerse(String text, int maxWidth, int maxHeight, int rightPadding, int fontSize) {
+
+		Font font = new Font(BahaStater.properties.getProperty(Constants.FONT), Font.PLAIN, fontSize);
+		while (tryIfStringFitsIn(text, new Dimension(maxWidth, maxHeight), font)) {
+			font = new Font(BahaStater.properties.getProperty(Constants.FONT), Font.PLAIN, fontSize);
+			fontSize += 1;
 		}
 		return fontSize;// -= 1;
 
@@ -491,6 +491,9 @@ public class BahaStater {
 		
 		if(songFg)
 			noLines = lineBreakCount+spaceCount+2;
+		if(lineHeight>(BahaStater.displayFrameY * .80)) {
+			lineHeight=Double.valueOf(BahaStater.displayFrameY * .80).floatValue();
+		}
 
 //		System.out.println("spaceCount....."+spaceCount);
 //		System.out.println("noLines....."+noLines);
@@ -500,9 +503,92 @@ public class BahaStater {
 //		System.out.println("txt total Height....."+lineHeight);
 //		System.out.println("total ht...."+((BahaStater.displayFrameY * .80)));
 //		System.out.println("font....."+font.getSize());
-		if (verseFg) {
-			noLines = noLines + 4;
+//		if (verseFg) {
+//			noLines = noLines + 1;
+//		}
+		if(songFg) {
+			if(videoFlag && (int) lineHeight/lineBreakCount >= (int) (((areaToFit.getHeight())/(noLines))) // || lineHt >= 100
+					) {
+				return false;
+			} else if ((int) lineHeight/lineBreakCount >= (int) (((BahaStater.displayFrameY * .80)/(noLines))) // || lineHt >= 100
+					) {// || (lineHt*noLines)>=(lheight-(lineHt*2))
+				return false;
+			}
+		} else if(verseFg) {
+			if(videoFlag && (int) lineHeight/(lineBreakCount+1) >= (int) (((areaToFit.getHeight())/(noLines-1.5))) // || lineHt >= 100
+					) {
+				return false;
+			} else if ((int) lineHeight/(lineBreakCount+1) >= (int) (((BahaStater.displayFrameY * .80)/(noLines))) // || lineHt >= 100
+					) {// || (lineHt*noLines)>=(lheight-(lineHt*2))
+				return false;
+			}
+		} else {
+			if ((int) lineHeight >= (int) (((BahaStater.displayFrameY * .70))) // || lineHt >= 100
+					) {// || (lineHt*noLines)>=(lheight-(lineHt*2))
+				return false;
+			}
 		}
+//		} else {
+//			if ((maxFontHeight*noLines) >= (areaToFit.getHeight() * .85)) {
+//				return false;
+//			}
+//		}
+		return res;
+	}
+	
+	private static boolean tryIfStringFitsIn(String textToMeasure, Dimension areaToFit, Font font) {
+		Hashtable hash = new Hashtable();
+		AttributedString attributedString = new AttributedString(textToMeasure, hash);
+		attributedString.addAttribute(TextAttribute.FONT, font);
+		AttributedCharacterIterator attributedCharacterIterator = attributedString.getIterator();
+		int start = attributedCharacterIterator.getBeginIndex();
+		int end = attributedCharacterIterator.getEndIndex();
+
+		LineBreakMeasurer lineBreakMeasurer = new LineBreakMeasurer(attributedCharacterIterator,
+				new FontRenderContext(null, false, false));
+		float width = (float) (BahaStater.displayFrameX * .80);// *0.70
+		lineBreakMeasurer.setPosition(start);
+		boolean res = true;
+		float lineHeight = 0;
+		int noLines = 0;
+		int lineBreakCount = 0;
+		float lineHt = 0;
+		int spaceCount = 0;
+		lineBreakMeasurer.setPosition(start);
+		boolean verseFg = false;
+		boolean songFg = false;
+		while (lineBreakMeasurer.getPosition() < end) {
+			TextLayout textLayout = lineBreakMeasurer.nextLayout(width);
+			if (textToMeasure.contains("\n")) {
+				noLines = textToMeasure.split("\n").length;
+				Pattern pattern = Pattern.compile("\n \r");
+				Matcher matcher = pattern.matcher(textToMeasure);
+				spaceCount = 0;
+				while (matcher.find()) {
+					spaceCount++;
+				}
+				songFg = true;
+			} else {
+				noLines++;
+				verseFg = true;
+			}
+			lineBreakCount++;
+			if (lineHt == 0)
+				lineHt = textLayout.getAscent() + textLayout.getDescent() + textLayout.getLeading();
+			lineHeight += textLayout.getAscent() + textLayout.getDescent() + textLayout.getLeading();
+
+		}
+		
+		if(songFg)
+			noLines = lineBreakCount+spaceCount+2;
+
+//		if (verseFg) {
+//			noLines = noLines + 4;
+//		}
+		if(lineHeight>(BahaStater.displayFrameY * .80)) {
+			lineHeight=Double.valueOf(BahaStater.displayFrameY * .80).floatValue();
+		}
+		
 		if(songFg) {
 			if(videoFlag && (int) lineHeight/lineBreakCount >= (int) (((areaToFit.getHeight())/(noLines))) // || lineHt >= 100
 					) {

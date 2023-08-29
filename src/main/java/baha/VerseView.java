@@ -14,7 +14,9 @@ import java.awt.Component;
 import java.awt.ComponentOrientation;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -30,22 +32,26 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JLayeredPane;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
+import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
@@ -53,11 +59,8 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import org.apache.commons.codec.binary.StringUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.util.StringUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -1961,31 +1964,51 @@ public class VerseView {
 		if (books.getSelectedValue() == null || chapters.getSelectedValue() == null
 				|| verses.getSelectedValue() == null)
 			return;
+
+		for (Component component : ((JRootPane) BahaStater.displayFrame.getComponent(0)).getComponents()) {
+			if (component instanceof JLayeredPane) {
+				JLayeredPane lpane = (JLayeredPane) component;
+				for (Component component1 : ((JPanel) lpane.getComponent(0)).getComponents()) {
+					if (component1 instanceof JScrollPane || component1 instanceof JTextPane) {
+						((JPanel) lpane.getComponent(0)).remove(component1);
+					}
+				}
+			}
+		}
+
 		JTextPane label = (JTextPane) BahaStater.label;
 		Map<String, String> secondaryCache = primaryCache
 				.get(books.getSelectedValue() + "-" + chapters.getSelectedValue());
-		
-		String versionEng = BAHAMenu.getMenu().kjv.isSelected()?BAHAMenu.getMenu().kjv.getText():"";
-			if(null == versionEng  || versionEng=="")
-				versionEng = BAHAMenu.getMenu().nkjv.isSelected()?BAHAMenu.getMenu().nkjv.getText():"";
-			if(null == versionEng  || versionEng=="")
-				versionEng = BAHAMenu.getMenu().amp.isSelected()?BAHAMenu.getMenu().amp.getText():"";
-			if(null == versionEng  || versionEng=="")
-				versionEng = BAHAMenu.getMenu().niv.isSelected()?BAHAMenu.getMenu().niv.getText():"";
+
+		String versionEng = BAHAMenu.getMenu().kjv.isSelected() ? BAHAMenu.getMenu().kjv.getText() : "";
+		if (null == versionEng || versionEng == "")
+			versionEng = BAHAMenu.getMenu().nkjv.isSelected() ? BAHAMenu.getMenu().nkjv.getText() : "";
+		if (null == versionEng || versionEng == "")
+			versionEng = BAHAMenu.getMenu().amp.isSelected() ? BAHAMenu.getMenu().amp.getText() : "";
+		if (null == versionEng || versionEng == "")
+			versionEng = BAHAMenu.getMenu().niv.isSelected() ? BAHAMenu.getMenu().niv.getText() : "";
 		final String version = versionEng;
-		if (null !=  secondaryCache && secondaryCache.containsKey(
+		if (null != secondaryCache && secondaryCache.containsKey(
 				books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-" + verses.getSelectedValue())) {
-			String contentFontCalc = bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
+			String contentFontCalc = bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue()
+					+ ":" + verses.getSelectedValue()
+					+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+							+ verses.getSelectedValue()).split("\\#")[1]
+					+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
+					+ " " + version + "" + secondaryCache.get(books.getSelectedValue() + "-"
+							+ chapters.getSelectedValue() + "-" + verses.getSelectedValue()).split("\\#")[0];
+			String contentFontCalcPrimary = bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue()+ ":" + verses.getSelectedValue()
 			+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-					+ verses.getSelectedValue()).split("\\#")[1]
-			+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()+ " "+version+""
+					+ verses.getSelectedValue()).split("\\#")[1];
+	
+			String contentFontCalcSecondary = books.getSelectedValue() + " " + chapters.getSelectedValue()+ ":" + verses.getSelectedValue()
 			+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
 					+ verses.getSelectedValue()).split("\\#")[0];
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
 					String content = books.getSelectedValue() + " " + chapters.getSelectedValue() + ":"
-							+ verses.getSelectedValue()+ "  " + version + "\r\n"
+							+ verses.getSelectedValue() + "  " + version + "\r\n"
 							+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
 									+ verses.getSelectedValue()).split("\\#")[1]
 							+ "\r\n" + secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue()
@@ -1999,8 +2022,12 @@ public class VerseView {
 					area2.setText(content);
 				}
 			}).start();
-			int fontSizeHindi = BahaStater.calculateFontSize(contentFontCalc,
-					BahaStater.lwidth, BahaStater.lheight, 0, 10);
+			int fontSizeBoth = BahaStater.calculateFontSizeVerse(contentFontCalc, BahaStater.lwidth, BahaStater.lheight, 0,
+					10);
+			int fontSizeHindi = BahaStater.calculateFontSizeVerse(contentFontCalcPrimary, BahaStater.lwidth, BahaStater.lheight, 0,
+					10);
+			int fontSizeEng = BahaStater.calculateFontSizeVerse(contentFontCalcSecondary, BahaStater.lwidth, BahaStater.lheight, 0,
+					10);
 			mruCache.putIfAbsent(
 					books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-" + verses.getSelectedValue(),
 					secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
@@ -2008,43 +2035,48 @@ public class VerseView {
 			panelMru.removeAll();
 			for (String mrukey : mruCache.keySet()) {
 				JButton jb = new JButton(mrukey);
-				jb.setBorder(BorderFactory.createBevelBorder(0,Color.LIGHT_GRAY,Color.LIGHT_GRAY));
+				jb.setBorder(BorderFactory.createBevelBorder(0, Color.LIGHT_GRAY, Color.LIGHT_GRAY));
 				jb.setForeground(Color.BLACK);
-				
+
 				jb.addMouseListener(new MouseListener() {
-					
+
 					@Override
 					public void mouseReleased(MouseEvent e) {
 						// TODO Auto-generated method stub
-						e.getComponent().setBackground(Color.decode(BahaStater.properties.getProperty(Constants.BLOCK_BACKGROUND)));
+						e.getComponent().setBackground(
+								Color.decode(BahaStater.properties.getProperty(Constants.BLOCK_BACKGROUND)));
 					}
-					
+
 					@Override
 					public void mousePressed(MouseEvent e) {
 						books.setSelectedValue(jb.getText().split("\\-")[0], false);
 						chapters.setSelectedValue(jb.getText().split("\\-")[1], false);
 						verses.setSelectedValue(jb.getText().split("\\-")[2], false);
-						Arrays.asList(booksPane.getComponents()).parallelStream().filter(f-> ((JToggleButton)f).isSelected()).forEach(c -> ((JToggleButton)c).setSelected(false));
+						Arrays.asList(booksPane.getComponents()).parallelStream()
+								.filter(f -> ((JToggleButton) f).isSelected())
+								.forEach(c -> ((JToggleButton) c).setSelected(false));
 						((JToggleButton) booksPane.getComponents()[books.getSelectedIndex()]).setSelected(true);
-						e.getComponent().setBackground(Color.decode(BahaStater.properties.getProperty(Constants.BLOCK_BACKGROUND)));
+						e.getComponent().setBackground(
+								Color.decode(BahaStater.properties.getProperty(Constants.BLOCK_BACKGROUND)));
 					}
-					
+
 					@Override
 					public void mouseExited(MouseEvent e) {
 						// TODO Auto-generated method stub
-						
+
 					}
-					
+
 					@Override
 					public void mouseEntered(MouseEvent e) {
 						// TODO Auto-generated method stub
-						
+
 					}
-					
+
 					@Override
 					public void mouseClicked(MouseEvent e) {
 						// TODO Auto-generated method stub
-						e.getComponent().setBackground(Color.decode(BahaStater.properties.getProperty(Constants.MAIN_BACKGROUND)));
+						e.getComponent().setBackground(
+								Color.decode(BahaStater.properties.getProperty(Constants.MAIN_BACKGROUND)));
 					}
 				});
 				panelMru.add(jb);
@@ -2067,55 +2099,111 @@ public class VerseView {
 					}
 				}
 			});
+			hindiFontColor = BahaStater.properties.getProperty(Constants.HINDI_FONT_COLOR);
+			englishFontColor = BahaStater.properties.getProperty(Constants.ENGLISH_FONT_COLOR);
+			if (null == hindiFontColor)
+				hindiFontColor = "#FFFFFF";
+			if (null == englishFontColor)
+				englishFontColor = "#FFFFFF";
 			panelMru.add(jb1);
 			panelMru.revalidate();
 			panelMru.repaint();
-			String contentHtm = "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi - 5) + ";'><br>"
-					+ bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-					+ "</span><br><span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi + 10) + ";'>"
-					+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-							+ verses.getSelectedValue()).split("\\#")[1]
-					+ "<br><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi - 10) + ";'><br>"
-							+ books.getSelectedValue()+ " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-					+ "</span><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi/2) + ";'>&nbsp;&nbsp;&nbsp;&nbsp;  "+version+"</span>" + "<br><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi - 5)
-					+ ";'>" + secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-							+ verses.getSelectedValue()).split("\\#")[0]
-					+ "</span>";
-			BahaStater.copyToClipboard(bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-			+"\n"
-			+secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-					+ verses.getSelectedValue()).split("\\#")[1]
-			+"\n"
-			+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue() + version
-			+"\n"
-			+secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-					+ verses.getSelectedValue()).split("\\#")[0]);
-			if(BahaStater.videoFlag) {
-				JTextPane label1 = (JTextPane) BahaStater.bglabel;
-				fontSizeHindi = BahaStater.calculateFontSize(
-						bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-								+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-										+ verses.getSelectedValue()).split("\\#")[1]
-								+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue() + version
-								+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
-										+ verses.getSelectedValue()).split("\\#")[0],
-						Double.valueOf(BahaStater.displayFrameX*.80).intValue(), Double.valueOf(BahaStater.displayFrameY*.20).intValue(), 0, 10);
-				contentHtm = "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi-5) + ";'>"
+			String contentHtm = "";
+			if("3".equals(BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE))) {
+				 contentHtm = "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeBoth*.80) + ";'>"
+//				 		+ "<br>"
 						+ bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-						+ "</span><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi/2) + ";'>  "+version+"</span><br><span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi-5) + ";'>"
+						+ "</span>"
+						+ "<br>"
+						+ "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeBoth+5) + ";'>"
 						+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
 								+ verses.getSelectedValue()).split("\\#")[1]
-						+ "</span>" + "<br>"
-								+ "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi-8) + ";'>"
-								+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
-								+ "</span><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi/2) + ";'>&nbsp;&nbsp;&nbsp;&nbsp; "+version+"</span><br><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi-5)
+						+ "<br>"
+						+ "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeBoth*.80) + ";'>"
+//								+ "<br>"
+								+ books.getSelectedValue()+ " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
+						+ "</span><span style='color:" + englishFontColor + ";font-size:" + (fontSizeBoth*.60) + ";'>&nbsp;&nbsp;&nbsp;&nbsp;  "+version+"</span>"
+								+ "<br>"
+								+ "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeBoth-5)
 						+ ";'>" + secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
 								+ verses.getSelectedValue()).split("\\#")[0]
 						+ "</span>";
-				final String lblContent = String.format(
-						"<html><body align='center' style='font-family:"+new Font("Arial Unicode MS",Font.PLAIN,fontSizeHindi)+";word-wrap:break-word;'><p style=\"background-image: url('"+BahaStater.properties.getProperty(Constants.LOWER_THIRD_IMAGE)+"');\">%s</p></body></html>", // <div
+			
+			} else {
+				if ("1".equals(BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE))
+						|| "3".equals(BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE))
+						|| null == BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE)
+						|| "" == BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE)) {
+					contentHtm += "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi*.80) + ";'>"
+//							+ "<br>"
+							+ bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":"
+							+ verses.getSelectedValue() + "</span>" + "<br>" + "<span style='color:" + hindiFontColor
+							+ ";font-size:" + (fontSizeHindi) + ";'>" + secondaryCache.get(books.getSelectedValue()
+									+ "-" + chapters.getSelectedValue() + "-" + verses.getSelectedValue()).split("\\#")[1]
+							+ "</span>";
+				}
+				if ("2".equals(BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE))
+						|| "3".equals(BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE))
+						|| null == BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE)
+						|| "" == BahaStater.properties.getProperty(Constants.VERSE_DISPLAY_LANGUAGE)) {
+					contentHtm += "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeEng*.80)
+							+ ";'>"
+	//							+ "<br>"
+							+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
+							+ "</span>" + "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeEng*.60)
+							+ ";'>&nbsp;&nbsp;&nbsp;&nbsp;  " + version + "</span>" + "<br>" + "<span style='color:"
+							+ englishFontColor + ";font-size:" + (fontSizeEng) + ";'>"
+							+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+									+ verses.getSelectedValue()).split("\\#")[0]
+							+ "</span>";
+				}
+			}
+			BahaStater.copyToClipboard(bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue()
+					+ ":" + verses.getSelectedValue() + "\n"
+					+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+							+ verses.getSelectedValue()).split("\\#")[1]
+					+ "\n" + books.getSelectedValue() + " " + chapters.getSelectedValue() + ":"
+					+ verses.getSelectedValue() + version + "\n" + secondaryCache.get(books.getSelectedValue() + "-"
+							+ chapters.getSelectedValue() + "-" + verses.getSelectedValue()).split("\\#")[0]);
+			if (BahaStater.videoFlag) {
+				JTextPane label1 = (JTextPane) BahaStater.bglabel;
+				fontSizeHindi = BahaStater.calculateFontSize(
+						bookMapHindi.get(books.getSelectedValue()) + " " + chapters.getSelectedValue() + ":"
+								+ verses.getSelectedValue()
+								+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+										+ verses.getSelectedValue()).split("\\#")[1]
+								+ books.getSelectedValue() + " " + chapters.getSelectedValue() + ":"
+								+ verses.getSelectedValue() + version
+								+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+										+ verses.getSelectedValue()).split("\\#")[0],
+						Double.valueOf(BahaStater.displayFrameX * .80).intValue(),
+						Double.valueOf(BahaStater.displayFrameY * .20).intValue(), 0, 10);
+				contentHtm = "<span style='color:" + hindiFontColor + ";font-size:" + (fontSizeHindi - 5) + ";'>"
+						+ bookMapHindi.get(books
+								.getSelectedValue())
+						+ " " + chapters.getSelectedValue() + ":" + verses.getSelectedValue()
+						+ "</span><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi / 2)
+						+ ";'>  " + version + "</span>" + "<br><span style='color:" + hindiFontColor + ";font-size:"
+						+ (fontSizeHindi - 5) + ";'>" + secondaryCache.get(books.getSelectedValue() + "-"
+								+ chapters.getSelectedValue() + "-" + verses.getSelectedValue()).split("\\#")[1]
+						+ "</span>"
+//								+ "<br>"
+						+ "<span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi - 8) + ";'>"
+						+ books.getSelectedValue() + " " + chapters
+								.getSelectedValue()
+						+ ":" + verses.getSelectedValue() + "</span><span style='color:" + englishFontColor
+						+ ";font-size:" + (fontSizeHindi / 2) + ";'>&nbsp;&nbsp;&nbsp;&nbsp; " + version + "</span>"
+						+ "<br><span style='color:" + englishFontColor + ";font-size:" + (fontSizeHindi - 5) + ";'>"
+						+ secondaryCache.get(books.getSelectedValue() + "-" + chapters.getSelectedValue() + "-"
+								+ verses.getSelectedValue()).split("\\#")[0]
+						+ "</span>";
+				final String lblContent = String.format("<html><body align='center' style='font-family:"
+						+ new Font("Arial Unicode MS", Font.PLAIN, fontSizeHindi)
+						+ ";word-wrap:break-word;'><p style=\"background-image: url('"
+						+ BahaStater.properties.getProperty(Constants.LOWER_THIRD_IMAGE) + "');\">%s</p></body></html>", // <div
 						contentHtm.replaceAll("\r\n", "<br>"));
-				label1.setPreferredSize(new Dimension(BahaStater.displayFrameX.intValue(), Double.valueOf(BahaStater.displayFrameY*.15).intValue()));
+				label1.setPreferredSize(new Dimension(BahaStater.displayFrameX.intValue(),
+						Double.valueOf(BahaStater.displayFrameY * .15).intValue()));
 //				label1.setMargin(new Insets(Double.valueOf(BahaStater.displayFrameY*.70).intValue(), 
 //						Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue(), 
 //						Double.valueOf(BahaStater.displayFrameY*.05).intValue(), 
@@ -2125,28 +2213,78 @@ public class VerseView {
 				label1.repaint();
 				label1.setVisible(true);
 				// label.setIgnoreRepaint(true);
-				BahaStater.webFrame.add(label1,BorderLayout.PAGE_END);
+				BahaStater.webFrame.add(label1, BorderLayout.PAGE_END);
 				BahaStater.webFrame.setAlwaysOnTop(true);
 			} else {
 				final String lblContent = String.format(
-						"<html><body align='center' style='font-family:"+BahaStater.properties.getProperty(Constants.FONT)+";'><p>%s</p></body></html>", // <div
+						"<html><body align='center' style='font-family:"
+								+ BahaStater.properties.getProperty(Constants.FONT) + ";'><p>%s</p></body></html>", // <div
 						contentHtm.replaceAll("\r\n", "<br>"));
-				label.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
-				label.setText(lblContent);
-				label.setMargin(new Insets(0, 
-						Double.valueOf(BahaStater.lwidth-(BahaStater.lwidth*.95)).intValue(), 
-						Double.valueOf(BahaStater.lheight-(BahaStater.lheight*.98)).intValue(), 
-						Double.valueOf(BahaStater.lwidth-(BahaStater.lwidth*.95)).intValue()));
-				label.revalidate();
-				label.repaint();
-				label.setVisible(true);
+				// final String imagePath = new
+				// File(Constants.ANNOUNCEMENTS_IMG_PATH)+File.separator+(new
+				// File(Constants.ANNOUNCEMENTS_IMG_PATH).list()[2]);
+				String imagePath = BahaStater.properties.getProperty(Constants.VERSE_BACKGROUND_IMAGE_PATH);
+				if (imagePath != null && imagePath != "" && new File(imagePath).exists()) {
+					JScrollPane scrollPane = new JScrollPane();
+					scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+					scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+					scrollPane.setViewport(new JViewport() {
+						@Override
+						protected void paintComponent(Graphics g) {
+							super.paintComponent(g);
+							Image image;
+							try {
+								image = ImageIO.read(new File(imagePath));
+								g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							// add custom painting here.
+							// For a scaled image you can use:
+						}
+					});
+					// final String imagePath = new
+					// File(Constants.ANNOUNCEMENTS_IMG_PATH)+file.separator+(new
+					// File(Constants.ANNOUNCEMENTS_IMG_PATH).list()[0]);
+					label.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
+					label.setText(lblContent);
+					label.setMargin(
+							new Insets(0, Double.valueOf(BahaStater.lwidth - (BahaStater.lwidth * .95)).intValue(),
+									Double.valueOf(BahaStater.lheight - (BahaStater.lheight * .98)).intValue(),
+									Double.valueOf(BahaStater.lwidth - (BahaStater.lwidth * .95)).intValue()));
+					label.revalidate();
+					label.repaint();
+					label.setVisible(true);
+					scrollPane.setViewportView(label);
+					scrollPane.setBorder(null);
+					scrollPane.setVisible(true);
+					scrollPane.revalidate();
+					scrollPane.repaint();
+					BahaStater.displayFrame.add(scrollPane, BorderLayout.CENTER);
+					BahaStater.displayFrame.revalidate();
+					BahaStater.displayFrame.repaint();
+				} else {
+					label.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
+					label.setText(lblContent);
+					label.setMargin(
+							new Insets(0, Double.valueOf(BahaStater.lwidth - (BahaStater.lwidth * .95)).intValue(),
+									Double.valueOf(BahaStater.lheight - (BahaStater.lheight * .98)).intValue(),
+									Double.valueOf(BahaStater.lwidth - (BahaStater.lwidth * .95)).intValue()));
+					label.revalidate();
+					label.repaint();
+					label.setVisible(true);
+					BahaStater.displayFrame.add(label, BorderLayout.CENTER);
+					BahaStater.displayFrame.revalidate();
+					BahaStater.displayFrame.repaint();
+				}
+
 				// label.setIgnoreRepaint(true);
-				BahaStater.displayFrame.add(label,BorderLayout.CENTER);
+
 				BahaStater.webFrame.setVisible(false);
 				BahaStater.webFrame.setAlwaysOnTop(false);
 			}
-			
-			
+
 		}
 	}
 	

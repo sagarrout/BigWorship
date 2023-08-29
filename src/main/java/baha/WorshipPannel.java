@@ -12,7 +12,9 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,21 +24,28 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
+import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
@@ -410,7 +419,19 @@ public class WorshipPannel {
 //		if(fontSizeHindi > ((BahaStater.displayFrameY*.60)/8)) {
 //			fontSizeHindi = Double.valueOf((BahaStater.displayFrameY*.60)/8).intValue();
 //		}
-
+		
+		for (Component component : ((JRootPane) BahaStater.displayFrame.getComponent(0)).getComponents()) {
+			if (component instanceof JLayeredPane) {
+				JLayeredPane lpane = (JLayeredPane) component;
+				for (Component component1 : ((JPanel) lpane.getComponent(0)).getComponents()) {
+					if (component1 instanceof JScrollPane || component1 instanceof JTextPane) {
+						((JPanel) lpane.getComponent(0)).remove(component1);
+					}
+				}
+			}
+		}
+		BahaStater.displayFrame.revalidate();
+		BahaStater.displayFrame.repaint();
 		String myHtmlText = source.getText().replaceAll("\r\n", "<br>").replaceAll("\n", "<br>");
 		StringBuilder builder = new StringBuilder();
 //		for (int i = 0; i < myHtmlText.split("<br>").length; i++) {
@@ -424,19 +445,64 @@ public class WorshipPannel {
 				builder.append("<span style='color:"+BahaStater.properties.getProperty(Constants.HINDI_FONT_COLOR)+";'>"+myHtmlText.split("<br>")[i]+"</span><br>");
 			}
 		}
-
-		destination.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
-		destination.setMargin(new Insets(0, 
-				Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue(), 
-				0, 
-				Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue()));
-		String lblContent = String
-				.format("<html><body align='center' style='color:#FFFFFF;font-family:"+BahaStater.properties.getProperty(Constants.FONT)+";font-size:"
-						+ fontSizeHindi + ";'>%s</body></html>", builder.toString());
-		destination.setText(lblContent);
-		destination.revalidate();
-		destination.repaint();
-		BahaStater.displayFrame.add(destination,BorderLayout.CENTER);
+		
+		
+//		final String imagePath = new File(Constants.ANNOUNCEMENTS_IMG_PATH)+File.separator+(new File(Constants.ANNOUNCEMENTS_IMG_PATH).list()[0]);
+		String imagePath = 	BahaStater.properties.getProperty(Constants.SONG_BACKGROUND_IMAGE_PATH);
+		if(imagePath != null && imagePath != "" && new File(imagePath).exists()) {
+			JScrollPane scrollPane = new JScrollPane();
+			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+			scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+			scrollPane.setBorder(null);
+			scrollPane.setViewport(new JViewport() {
+				@Override
+	            protected void paintComponent(Graphics g)
+	            {
+	                super.paintComponent(g);
+	                Image image;
+					try {
+						image = ImageIO.read(new File(imagePath));
+						 g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	                //  add custom painting here. 
+	                //  For a scaled image you can use:
+	            }
+			});
+			//final String imagePath = new File(Constants.ANNOUNCEMENTS_IMG_PATH)+file.separator+(new File(Constants.ANNOUNCEMENTS_IMG_PATH).list()[0]);
+			destination.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
+			destination.setMargin(new Insets(0, 
+					Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue(), 
+					0, 
+					Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue()));
+			String lblContent = String
+					.format("<html><body align='center' style='color:#FFFFFF;font-family:"+BahaStater.properties.getProperty(Constants.FONT)+";font-size:"
+							+ fontSizeHindi + ";'>%s</body></html>", builder.toString());
+			destination.setText(lblContent);
+			destination.revalidate();
+			destination.repaint();
+			scrollPane.setViewportView(destination);
+			BahaStater.displayFrame.add(scrollPane,BorderLayout.CENTER);
+			BahaStater.displayFrame.revalidate();
+			BahaStater.displayFrame.repaint();
+		} else {
+			destination.setPreferredSize(new Dimension(BahaStater.lwidth, BahaStater.lheight));
+			destination.setMargin(new Insets(0, 
+					Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue(), 
+					0, 
+					Double.valueOf(BahaStater.displayFrameX-(BahaStater.displayFrameX*.95)).intValue()));
+			String lblContent = String
+					.format("<html><body align='center' style='color:#FFFFFF;font-family:"+BahaStater.properties.getProperty(Constants.FONT)+";font-size:"
+							+ fontSizeHindi + ";'>%s</body></html>", builder.toString());
+			destination.setText(lblContent);
+			destination.revalidate();
+			destination.repaint();
+			BahaStater.displayFrame.add(destination,BorderLayout.CENTER);
+			BahaStater.displayFrame.revalidate();
+			BahaStater.displayFrame.repaint();
+		}
 	}
 	
 	

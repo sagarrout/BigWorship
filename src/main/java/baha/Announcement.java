@@ -1,10 +1,3 @@
-/**
- * Copyright 2021 Bethel AG Hindi Aaradhana
- * 
- * The source code is developed and owned by Bethel AG Hindi Aaradhana. 
- * User must not sell the software to third party under any circumstance.
- * User must not use the software for commercial purpose.
- */
 package main.java.baha;
 
 import java.awt.BorderLayout;
@@ -46,6 +39,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JRootPane;
@@ -57,6 +51,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileDeleteStrategy;
+import org.apache.poi.util.SystemOutLogger;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 
@@ -271,6 +267,19 @@ public class Announcement {
 								public void mouseClicked(MouseEvent e) {
 									Arrays.asList(imgPane.getComponents()).parallelStream()
 											.forEach(l -> l.setBackground(null));
+									for (Component component : ((JRootPane) BahaStater.displayFrame.getComponent(0)).getComponents()) {
+										if (component instanceof JLayeredPane) {
+											JLayeredPane lpane = (JLayeredPane) component;
+											for (Component component1 : ((JPanel) lpane.getComponent(0)).getComponents()) {
+												if (component1 instanceof JScrollPane || component1 instanceof JTextPane) {
+													System.out.println("removed component1=="+component1);
+													((JPanel) lpane.getComponent(0)).remove(component1);
+												}
+											}
+										}
+									}
+									JTextPane label1 = (JTextPane) BahaStater.label;
+									BahaStater.displayFrame.add(label1);
 									lbl.setBackground(Color
 											.decode(BahaStater.properties.getProperty(Constants.SELECTED_BACKGROUND)));
 									lbl.setOpaque(true);
@@ -278,6 +287,7 @@ public class Announcement {
 											.getComponents()) {
 										try {
 											JLayeredPane lpane = (JLayeredPane) component;
+											
 											for (Component component1 : ((JPanel) lpane.getComponent(0))
 													.getComponents()) {
 												if (component1 instanceof JTextPane) {
@@ -291,7 +301,7 @@ public class Announcement {
 													label.revalidate();
 													label.repaint();
 													label.setVisible(true);
-													BahaStater.displayFrame.add(label);
+//													BahaStater.displayFrame.add(label);
 													BahaStater.displayFrame.repaint();
 													break;
 												}
@@ -328,6 +338,16 @@ public class Announcement {
 		FileOutputStream out = null;
 
 		try {
+			for (Component component : ((JRootPane) BahaStater.displayFrame.getComponent(0)).getComponents()) {
+				if (component instanceof JLayeredPane) {
+					JLayeredPane lpane = (JLayeredPane) component;
+					for (Component component1 : ((JPanel) lpane.getComponent(0)).getComponents()) {
+						if (component1 instanceof JScrollPane || component1 instanceof JTextPane) {
+							((JPanel) lpane.getComponent(0)).remove(component1);
+						}
+					}
+				}
+			}
 			fis = new FileInputStream(file);
 			ppt = new XMLSlideShow(fis);
 			slides = ppt.getSlides();
@@ -342,7 +362,11 @@ public class Announcement {
 				}
 				if (ij > 0) {
 					for (File fl : fList) {
-						fl.delete();
+//						fl.delete();
+						System.gc();
+			            //then
+			            Files.delete(fl.toPath());
+						FileDeleteStrategy.FORCE.delete(fl);
 						ii++;
 //						System.out.println("ii1==" + ii);
 //						System.out.println("ij1==" + ij);
@@ -367,10 +391,18 @@ public class Announcement {
 
 						// clear area
 						graphics.setPaint(Color.white);
+						graphics.setBackground(Color.black);
 						graphics.fill(new Rectangle2D.Float(0, 0, pgsize.width, pgsize.height));
 
 						// draw the images
-						slides.get(i).draw(graphics);
+						System.out.println(i+"slides"+slides.get(i).getSlideNumber());
+						try {
+							slides.get(i).draw(graphics);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							System.out.println(i+"==error slide=="+slides.get(i).getSlideNumber());
+							JOptionPane.showMessageDialog(BahaStater.initFrame, "Slide number"+slides.get(i).getSlideNumber()+" has errors");
+						}
 
 						out = new FileOutputStream(
 								Constants.ANNOUNCEMENTS_IMG_PATH + File.separator + "ppt_image" + i + ".png");

@@ -1,10 +1,3 @@
-/**
- * Copyright 2021 Bethel AG Hindi Aaradhana
- * 
- * The source code is developed and owned by Bethel AG Hindi Aaradhana. 
- * User must not sell the software to third party under any circumstance.
- * User must not use the software for commercial purpose.
- */
 package main.java.baha;
 
 import java.awt.BorderLayout;

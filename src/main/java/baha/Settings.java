@@ -14,15 +14,19 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
 
-import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
@@ -38,7 +42,6 @@ import org.apache.poi.xwpf.usermodel.XWPFStyles;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STOnOff;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 public class Settings {
@@ -46,6 +49,9 @@ public class Settings {
 	private static Settings obj;
 	JTable table;
 	private static String exportPath = Constants.RESOURCES_PATH;
+	private JFileChooser vlcDialog = new JFileChooser();
+	private JFileChooser verseBgDialog = new JFileChooser();
+	private JFileChooser songBgDialog = new JFileChooser();
 
 	public Settings() {
 		displayPanel = new JPanel();
@@ -63,8 +69,231 @@ public class Settings {
 //			gridPan2.setBackground(Color.decode(boxBackColor));
 //		}
 
+		final String establishName = BahaStater.properties.getProperty(Constants.ESTABLISHMENT_NAME_PROP);
+		JPanel establishNamePane = new JPanel();
+//		gridPan9.setLayout(new BoxLayout(gridPan9, BoxLayout.Y_AXIS));
+		JLabel establishNameLabel = new JLabel("Church Name       ");
+		establishNamePane.add(establishNameLabel);
+		JTextField establishNameBtn = new JTextField(20);
+		establishNameBtn.setText(establishName);
+		establishNameBtn.getDocument().addDocumentListener(new DocumentListener() {
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				setProperty(Constants.ESTABLISHMENT_NAME_PROP, establishNameBtn.getText());
+				BahaStater.initFrame.setTitle(establishNameBtn.getText());
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				setProperty(Constants.ESTABLISHMENT_NAME_PROP, establishNameBtn.getText());
+				BahaStater.initFrame.setTitle(establishNameBtn.getText());
+
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				setProperty(Constants.ESTABLISHMENT_NAME_PROP, establishNameBtn.getText());
+				BahaStater.initFrame.setTitle(establishNameBtn.getText());
+
+			}
+		});
+		establishNamePane.add(establishNameBtn);
+		displayPanel.add(establishNamePane);
+
+		// vlc
+		JPanel vlcPane = new JPanel();
+		JLabel vlcLabel = new JLabel();
+		if (BahaStater.properties.getProperty(Constants.VLCPATH) != null
+				&& BahaStater.properties.getProperty(Constants.VLCPATH).trim().length() > 0) {
+			String vlcInstallationPath = BahaStater.properties.getProperty(Constants.VLCPATH);
+			vlcDialog = new JFileChooser(vlcInstallationPath);
+			vlcDialog.setSelectedFile(new File(vlcInstallationPath));
+			vlcLabel.setText(vlcInstallationPath);
+			vlcLabel.setVisible(true);
+		} else {
+			vlcDialog = new JFileChooser();
+		}
+		vlcDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		JButton vlcBtn = new JButton("Choose vlc player installation path");
+		vlcBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							int returnVal = vlcDialog.showOpenDialog(BahaStater.initFrame);
+							if (returnVal == JFileChooser.APPROVE_OPTION) {
+								File file = vlcDialog.getSelectedFile();
+								vlcLabel.setText(file.getAbsolutePath());
+								BahaStater.properties.setProperty(Constants.VLCPATH, file.getAbsolutePath());
+								try (OutputStream output = new FileOutputStream(Constants.PROPERTIES_PATH)) {
+									BahaStater.properties.store(output, null);
+								} catch (IOException e2) {
+									e2.printStackTrace();
+								}
+							}
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		vlcPane.add(vlcBtn);
+		vlcPane.add(vlcLabel);
+		vlcPane.repaint();
+		displayPanel.add(vlcPane);
+
+		// verse background
+		JPanel verseBgPane = new JPanel();
+		JLabel verseBgLabel = new JLabel();
+		if (BahaStater.properties.getProperty(Constants.VERSE_BACKGROUND_IMAGE_PATH) != null
+				&& BahaStater.properties.getProperty(Constants.VERSE_BACKGROUND_IMAGE_PATH).trim().length() > 0) {
+			String verseBgPath = BahaStater.properties.getProperty(Constants.VERSE_BACKGROUND_IMAGE_PATH);
+			verseBgDialog = new JFileChooser(verseBgPath);
+			verseBgDialog.setSelectedFile(new File(verseBgPath));
+			verseBgLabel.setText(verseBgPath);
+			verseBgLabel.setVisible(true);
+		} else {
+			verseBgDialog = new JFileChooser();
+		}
+		JButton verseBgBtn = new JButton("Choose background image for verse");
+		verseBgBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							int returnVal = verseBgDialog.showOpenDialog(BahaStater.initFrame);
+							if (returnVal == JFileChooser.APPROVE_OPTION) {
+								File file = verseBgDialog.getSelectedFile();
+								verseBgLabel.setText(file.getAbsolutePath());
+								BahaStater.properties.setProperty(Constants.VERSE_BACKGROUND_IMAGE_PATH,
+										file.getAbsolutePath());
+								try (OutputStream output = new FileOutputStream(Constants.PROPERTIES_PATH)) {
+									BahaStater.properties.store(output, null);
+								} catch (IOException e2) {
+									e2.printStackTrace();
+								}
+							}
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		verseBgPane.add(verseBgBtn);
+		verseBgPane.add(verseBgLabel);
+		JButton verseBgRemoveBtn = new JButton("Remove Background");
+		verseBgRemoveBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							JDialog.setDefaultLookAndFeelDecorated(true);
+							int response = JOptionPane.showConfirmDialog(null, "Do you want delete background image?",
+									"Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+							if (response == JOptionPane.YES_OPTION) {
+								verseBgLabel.setText("");
+								BahaStater.properties.remove(Constants.VERSE_BACKGROUND_IMAGE_PATH);
+								try (OutputStream output = new FileOutputStream(Constants.PROPERTIES_PATH)) {
+									BahaStater.properties.store(output, null);
+								} catch (IOException e2) {
+									e2.printStackTrace();
+								}
+							}
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		if(null != verseBgLabel.getText() && verseBgLabel.getText().length()>0) {
+			verseBgPane.add(verseBgRemoveBtn);
+		}
+		verseBgPane.repaint();
+		displayPanel.add(verseBgPane);
+
+		// song background
+		JPanel songBgPane = new JPanel();
+		JLabel songBgLabel = new JLabel();
+		if (BahaStater.properties.getProperty(Constants.SONG_BACKGROUND_IMAGE_PATH) != null
+				&& BahaStater.properties.getProperty(Constants.SONG_BACKGROUND_IMAGE_PATH).trim().length() > 0) {
+			String songBgPath = BahaStater.properties.getProperty(Constants.SONG_BACKGROUND_IMAGE_PATH);
+			songBgDialog = new JFileChooser(songBgPath);
+			songBgDialog.setSelectedFile(new File(songBgPath));
+			songBgLabel.setText(songBgPath);
+			songBgLabel.setVisible(true);
+		} else {
+			songBgDialog = new JFileChooser();
+		}
+		JButton songBgBtn = new JButton("Choose background image for songs");
+		songBgBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							int returnVal = songBgDialog.showOpenDialog(BahaStater.initFrame);
+							if (returnVal == JFileChooser.APPROVE_OPTION) {
+								File file = songBgDialog.getSelectedFile();
+								songBgLabel.setText(file.getAbsolutePath());
+								BahaStater.properties.setProperty(Constants.SONG_BACKGROUND_IMAGE_PATH,
+										file.getAbsolutePath());
+								try (OutputStream output = new FileOutputStream(Constants.PROPERTIES_PATH)) {
+									BahaStater.properties.store(output, null);
+								} catch (IOException e2) {
+									e2.printStackTrace();
+								}
+							}
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		songBgPane.add(songBgBtn);
+		songBgPane.add(songBgLabel);
+		JButton songBgRemoveBtn = new JButton("Remove Background");
+		songBgRemoveBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							JDialog.setDefaultLookAndFeelDecorated(true);
+							int response = JOptionPane.showConfirmDialog(null, "Do you want delete background image?",
+									"Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+							if (response == JOptionPane.YES_OPTION) {
+								songBgLabel.setText("");
+								BahaStater.properties.remove(Constants.SONG_BACKGROUND_IMAGE_PATH);
+								try (OutputStream output = new FileOutputStream(Constants.PROPERTIES_PATH)) {
+									BahaStater.properties.store(output, null);
+								} catch (IOException e2) {
+									e2.printStackTrace();
+								}
+							}
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		if(null != songBgLabel.getText() && songBgLabel.getText().length()>0) {
+			songBgPane.add(songBgRemoveBtn);
+		}
+		songBgPane.repaint();
+		songBgPane.repaint();
+		displayPanel.add(songBgPane);
+
 		JPanel gridPan1 = new JPanel();
-		gridPan1.setLayout(new BoxLayout(gridPan1, BoxLayout.Y_AXIS));
+		// gridPan1.setLayout(new BoxLayout(gridPan1, BoxLayout.Y_AXIS));
 		JLabel mainBackgroundLabel = new JLabel("Main Screen Background      ");
 		gridPan1.add(mainBackgroundLabel);
 		JButton mainBackgroundBtn = new JButton("Change");
@@ -86,7 +315,7 @@ public class Settings {
 		displayPanel.add(gridPan1);
 
 		JPanel gridPan2 = new JPanel();
-		gridPan2.setLayout(new BoxLayout(gridPan2, BoxLayout.Y_AXIS));
+		// gridPan2.setLayout(new BoxLayout(gridPan2, BoxLayout.Y_AXIS));
 		JLabel boxBackgroundLabel = new JLabel("Box Background       ");
 		gridPan2.add(boxBackgroundLabel);
 		JButton boxBackgroundBtn = new JButton("Change");
@@ -107,7 +336,7 @@ public class Settings {
 
 		final String selectedBackColor = BahaStater.properties.getProperty(Constants.SELECTED_BACKGROUND);
 		JPanel gridPan3 = new JPanel();
-		gridPan3.setLayout(new BoxLayout(gridPan3, BoxLayout.Y_AXIS));
+		// gridPan3.setLayout(new BoxLayout(gridPan3, BoxLayout.Y_AXIS));
 		JLabel selectedBackgroundLabel = new JLabel("Selected Background       ");
 		gridPan3.add(selectedBackgroundLabel);
 		JButton selectedBackgroundBtn = new JButton("Change");
@@ -129,7 +358,7 @@ public class Settings {
 
 		final String normalFontColor = BahaStater.properties.getProperty(Constants.NORMAL_FONT_COLOR);
 		JPanel gridPan4 = new JPanel();
-		gridPan4.setLayout(new BoxLayout(gridPan4, BoxLayout.Y_AXIS));
+		// gridPan4.setLayout(new BoxLayout(gridPan4, BoxLayout.Y_AXIS));
 		JLabel fontColorLabel = new JLabel("Font Colour       ");
 		gridPan4.add(fontColorLabel);
 		JButton fontColorBtn = new JButton("Change");
@@ -150,7 +379,7 @@ public class Settings {
 
 		final String selectedFontColor = BahaStater.properties.getProperty(Constants.SELECTED_FONT_COLOR);
 		JPanel gridPan5 = new JPanel();
-		gridPan5.setLayout(new BoxLayout(gridPan5, BoxLayout.Y_AXIS));
+		// gridPan5.setLayout(new BoxLayout(gridPan5, BoxLayout.Y_AXIS));
 		JLabel selectedFontColorLabel = new JLabel("Selected Font Colour       ");
 		gridPan5.add(selectedFontColorLabel);
 		JButton selectedFontColorBtn = new JButton("Change");
@@ -169,10 +398,10 @@ public class Settings {
 		});
 		gridPan5.add(selectedFontColorBtn);
 		displayPanel.add(gridPan5);
-		
+
 		final String projectorBgColor = BahaStater.properties.getProperty(Constants.PROJECTOR_BACKGROUND);
 		JPanel gridPan6 = new JPanel();
-		gridPan6.setLayout(new BoxLayout(gridPan6, BoxLayout.Y_AXIS));
+		// gridPan6.setLayout(new BoxLayout(gridPan6, BoxLayout.Y_AXIS));
 		JLabel projectoBgColorLabel = new JLabel("Projector BG Colour       ");
 		gridPan6.add(projectoBgColorLabel);
 		JButton projectoBgColorBtn = new JButton("Change");
@@ -192,12 +421,10 @@ public class Settings {
 		});
 		gridPan6.add(projectoBgColorBtn);
 		displayPanel.add(gridPan6);
-		
-		
 
 		final String hindiColor = BahaStater.properties.getProperty(Constants.HINDI_FONT_COLOR);
 		JPanel gridPan7 = new JPanel();
-		gridPan7.setLayout(new BoxLayout(gridPan7, BoxLayout.Y_AXIS));
+		// gridPan7.setLayout(new BoxLayout(gridPan7, BoxLayout.Y_AXIS));
 		JLabel hindiColorLabel = new JLabel("Hindi Font Colour       ");
 		gridPan7.add(hindiColorLabel);
 		JButton hindiColorBtn = new JButton("Change");
@@ -218,7 +445,7 @@ public class Settings {
 
 		final String englishColor = BahaStater.properties.getProperty(Constants.ENGLISH_FONT_COLOR);
 		JPanel gridPan8 = new JPanel();
-		gridPan8.setLayout(new BoxLayout(gridPan8, BoxLayout.Y_AXIS));
+		// gridPan8.setLayout(new BoxLayout(gridPan8, BoxLayout.Y_AXIS));
 		JLabel englishColorLabel = new JLabel("English Font Colour       ");
 		gridPan8.add(englishColorLabel);
 		JButton englishColorBtn = new JButton("Change");
@@ -267,7 +494,7 @@ public class Settings {
 		displayPanel.add(gridPan9);
 
 		JPanel gridPan10 = new JPanel();
-		gridPan10.setLayout(new BoxLayout(gridPan10, BoxLayout.Y_AXIS));
+		// gridPan10.setLayout(new BoxLayout(gridPan10, BoxLayout.Y_AXIS));
 		JLabel exportLabel = new JLabel(" Export Songs ");
 		gridPan10.add(exportLabel);
 		JButton exportSongsBtn = new JButton("Export to Microsoft Word");
@@ -281,21 +508,22 @@ public class Settings {
 			}
 		});
 		gridPan10.add(exportSongsBtn);
-		gridPan10.add(new JLabel("\n\n"));
-		JButton exportSongsBtnpdf = new JButton("Export to pdf");
-		exportSongsBtnpdf.setBackground(Color.LIGHT_GRAY);
-		exportSongsBtnpdf.setForeground(Color.BLACK);
-		exportSongsBtnpdf.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				JDialog dialog = new JDialog(BahaStater.initFrame, "Songs", true);
-				InsertJTable(dialog);
-			}
-		});
-		gridPan10.add(exportSongsBtnpdf);
+//		gridPan10.add(new JLabel("\n\n"));
+//		JButton exportSongsBtnpdf = new JButton("Export to pdf");
+//		exportSongsBtnpdf.setBackground(Color.LIGHT_GRAY);
+//		exportSongsBtnpdf.setForeground(Color.BLACK);
+//		exportSongsBtnpdf.addActionListener(new ActionListener() {
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				JDialog dialog = new JDialog(BahaStater.initFrame, "Songs", true);
+//				InsertJTable(dialog);
+//			}
+//		});
+//		gridPan10.add(exportSongsBtnpdf);
 		displayPanel.add(gridPan10);
-		
-		final String projectorBGTransparent = BahaStater.properties.getProperty(Constants.PROJECTOR_BACKGROUND_TRANSPARENT);
+
+		final String projectorBGTransparent = BahaStater.properties
+				.getProperty(Constants.PROJECTOR_BACKGROUND_TRANSPARENT);
 		JPanel gridPan11 = new JPanel();
 //		gridPan9.setLayout(new BoxLayout(gridPan9, BoxLayout.Y_AXIS));
 		JLabel projectorBGTransparentLabel = new JLabel("Projector Background Transperency      ");
@@ -323,6 +551,55 @@ public class Settings {
 		});
 		gridPan11.add(projectorBGTransparentBtn);
 		displayPanel.add(gridPan11);
+		
+		final String verseLanguage = BahaStater.properties
+				.getProperty(Constants.VERSE_DISPLAY_LANGUAGE);
+		JPanel gridPan12 = new JPanel();
+//		gridPan9.setLayout(new BoxLayout(gridPan9, BoxLayout.Y_AXIS));
+		JLabel verseLanguageLabel = new JLabel("Verse Display Language");
+		gridPan12.add(verseLanguageLabel);
+//		JTextField verseLanguageBtn = new JTextField(projectorBGTransparent);
+		JRadioButton verseLanguageBtn1 = new JRadioButton("Primary Language","1".equals(verseLanguage));
+	    JRadioButton verseLanguageBtn2 = new JRadioButton("Secondary Language","2".equals(verseLanguage));
+	    JRadioButton verseLanguageBtn3 = new JRadioButton("Both Languages","3".equals(verseLanguage)||null == verseLanguage);
+	    ButtonGroup verseLanguageBtn = new ButtonGroup();
+	    verseLanguageBtn.add(verseLanguageBtn1);
+	    verseLanguageBtn.add(verseLanguageBtn2);
+	    verseLanguageBtn.add(verseLanguageBtn3);
+	    verseLanguageBtn1.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JRadioButton b = (JRadioButton) e.getSource();
+				if(b.isSelected()) {
+					setProperty(Constants.VERSE_DISPLAY_LANGUAGE, "1");
+				}
+				
+			}
+		});
+	    verseLanguageBtn2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JRadioButton b = (JRadioButton) e.getSource();
+				if(b.isSelected()) {
+					setProperty(Constants.VERSE_DISPLAY_LANGUAGE, "2");
+				}
+				
+			}
+		});
+	    verseLanguageBtn3.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JRadioButton b = (JRadioButton) e.getSource();
+				if(b.isSelected()) {
+					setProperty(Constants.VERSE_DISPLAY_LANGUAGE, "3");
+				}
+				
+			}
+		});
+		gridPan12.add(verseLanguageBtn1);
+		gridPan12.add(verseLanguageBtn2);
+		gridPan12.add(verseLanguageBtn3);
+		displayPanel.add(gridPan12);
 
 	}
 
@@ -394,7 +671,7 @@ public class Settings {
 	private static void writeToFile() {
 //		File file = new File(exportPath);
 		XWPFDocument document = new XWPFDocument();
-		try (FileOutputStream fileOut = new FileOutputStream(exportPath+"Worship_Songs.docx")) {
+		try (FileOutputStream fileOut = new FileOutputStream(exportPath + "Worship_Songs.docx")) {
 			int count = 0;
 			XWPFParagraph paragraph1st = document.createParagraph();
 			paragraph1st.setAlignment(ParagraphAlignment.CENTER);
@@ -433,7 +710,6 @@ public class Settings {
 				paragraph.setAlignment(ParagraphAlignment.CENTER);
 				paragraph.setStyle("Heading 1");
 
-				
 				ctSimpleField.addNewR().addNewT().setStringValue((temp) + ". " + String.valueOf(entry.getKey()));
 //				toc.setDirty(STOnOff.TRUE);
 
@@ -479,7 +755,7 @@ public class Settings {
 								}
 							}
 
-							if (sbH.length()>0 && sbE.length()>0) {
+							if (sbH.length() > 0 && sbE.length() > 0) {
 								XWPFTableRow row = table.createRow();
 								XWPFTableCell cell1 = row.getCell(0);
 								XWPFParagraph p1 = cell1.addParagraph();
@@ -507,7 +783,7 @@ public class Settings {
 
 								cell2.setParagraph(p2);
 								paraCol = 50;
-							} else if (sbH.length()>0) {
+							} else if (sbH.length() > 0) {
 								XWPFTableRow row = table.createRow();
 								XWPFTableCell cell1 = row.getCell(0);
 								XWPFParagraph p1 = cell1.addParagraph();
@@ -520,7 +796,7 @@ public class Settings {
 								if (paraCol != 50)
 									cell1.setWidth("100%");
 								cell1.setParagraph(p1);
-							} else if (sbE.length()>0) {
+							} else if (sbE.length() > 0) {
 								XWPFTableRow row = table.createRow();
 								XWPFTableCell cell1 = row.getCell(0);
 								XWPFParagraph p1 = cell1.addParagraph();

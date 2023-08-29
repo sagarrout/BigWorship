@@ -124,7 +124,10 @@ public class Constants {
 	public static final String GOOGLE_SLIDE_URL = "googleSlideURL";
 	public static final String CLIPBOARD_TEXT_FILE = "clipboardfile";
 	public static final String LOWER_THIRD_IMAGE = "lowerthirdimage";
+	
 	public static final String SONG_BACKGROUND_IMAGE_PATH = "songbackgroundpath";
 	public static final String VERSE_BACKGROUND_IMAGE_PATH = "verseviewbackgroundpath";
+	
 	public static final String VERSE_DISPLAY_LANGUAGE = "versedisplaylanguage";
+	
 }
